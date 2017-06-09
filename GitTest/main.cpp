@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <conio.h>
 #include <string.h>
+#include <assert.h>
 
 class MyString
 {
@@ -104,6 +105,70 @@ class StringManager
 	
 };
 
+namespace FSB
+{
+
+	class File
+	{
+	public:
+		virtual void Read(void* buffer, size_t elemSize, size_t count) = 0;
+		virtual void Write(const wchar_t* format) = 0;
+		virtual void Append(const wchar_t* format, bool create) = 0;
+	};
+
+	class StdFile : public File
+	{
+	public:
+		StdFile(const char* name)
+		{
+			assert(name);
+			strcpy_s(m_name, maxPath, name);
+			m_file = nullptr;
+		}
+
+		~StdFile()
+		{
+			if (m_file) fclose(m_file);
+			m_file = nullptr;
+		}
+
+		void Read(void* buffer, size_t elemSize, size_t count)
+		{
+			fopen_s(&m_file, m_name, "r");
+			assert(m_file);
+			size_t res = fread(buffer, elemSize, count, m_file);
+			assert(res == count);
+			fclose(m_file);
+		}
+		void Write(const wchar_t* format)
+		{
+			fopen_s(&m_file, m_name, "w");
+			assert(m_file);
+			fwprintf(m_file, format);
+			fclose(m_file);
+		}
+
+		void Append(const wchar_t* format, bool create = true)
+		{
+			fopen_s(&m_file, m_name, "a");
+			assert(m_file);
+			fwprintf(m_file, format);
+			fclose(m_file);
+		}
+	private:
+		FILE* m_file;
+		const static size_t maxPath = 260;
+		char m_name[maxPath];
+	};
+
+	class FileManager
+	{
+
+	};
+
+}	// namespace FSB
+
+
 int main()
 {
 	
@@ -155,6 +220,10 @@ int main()
 	gamma = "Acc";
 	gamma.Print();
 	printf("%d\n", gamma.GetLength());
+
+	FSB::StdFile prova("C:\\testFileIo.txt");
+	prova.Write(L"Hello File World!");
+
 	_getch();
 	return 0;
 }
