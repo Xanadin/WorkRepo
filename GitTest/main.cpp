@@ -110,10 +110,14 @@ namespace FSB
 
 	class File
 	{
+		friend class FileManager;
 	public:
 		virtual void Read(void* buffer, size_t elemSize, size_t count) = 0;
 		virtual void Write(const wchar_t* format) = 0;
 		virtual void Append(const wchar_t* format, bool create) = 0;
+	protected:
+		const static size_t maxPath = 260;
+		char m_name[maxPath];
 	};
 
 	class StdFile : public File
@@ -156,47 +160,72 @@ namespace FSB
 		}
 	private:
 		FILE* m_file;
-		const static size_t maxPath = 260;
-		char m_name[maxPath];
-	};
-
-	class FileHandle
-	{
-		friend class FileManager;
-	private:
-		int m_index;
 	};
 
 	class FileManager
 	{
 	public:
+		typedef unsigned int FileHandle;
 
 		FileManager()
 		{
-			for (int i = 0; i < maxFileUsage; ++i) m_StatusVec[i] = FREE;
+			for (int i = 0; i < maxFileUsage; ++i)
+			{
+				m_StatusVec[i] = FREE;
+				m_RefVec[i] = 0;
+			}
 		}
-		FileHandle* GetFile(const char* name)
+		FileHandle GetFile(const char* name)
+		{
+			// Check if already used
+			for (int i = 0; i < maxFileUsage; ++i)
+			{
+				if (strcmp(name, m_FileVec[i].m_name) == 0)
+				{
+					++m_RefVec[i];
+					return i;
+				}
+			}
+			// Find free index
+			for (int i = 0; i < maxFileUsage; ++i)
+			{
+				if (m_StatusVec[i] & FREE)
+				{
+					strcpy_s(m_FileVec[i].m_name, File::maxPath, name);
+					return i;
+				}		
+			}
+			// No free handle
+			return -1;
+		}
+		void Read(FileHandle handle, void* buffer, size_t elemSize, size_t count)
+		{
+			
+		}
+		void Write(FileHandle handle, const wchar_t* format )
 		{
 
 		}
+		void Append(FileHandle handle, const wchar_t* format, bool create)
+		{
+
+		}
+		void Free(FileHandle handle)
+		{
+
+		}
+
 		const unsigned int READ = 1 << 1;
 		const unsigned int WRITE = 1 << 2;
 		const unsigned int APPEND = 1 << 3;
-		const unsigned int CLOSED = 1 << 4;
+		const unsigned int OPENED = 1 << 4;
 		const unsigned int FREE = 1 << 5;
 
 	private:
-		int FindFreeHandle()
-		{
-			for (int i = 0; i < maxFileUsage; ++i) 
-			{
-				if (m_StatusVec[i] & FREE) return i;
-			}
-			return -1;
-		}
 		const static size_t maxFileUsage = 10;
 		StdFile m_FileVec[maxFileUsage];
 		unsigned int m_StatusVec[maxFileUsage];
+		unsigned int m_RefVec[maxFileUsage];
 	};
 
 }	// namespace FSB
@@ -253,9 +282,6 @@ int main()
 	gamma = "Acc";
 	gamma.Print();
 	printf("%d\n", gamma.GetLength());
-
-	FSB::StdFile prova("C:\\testFileIo.txt");
-	prova.Write(L"Hello File World!\nè pure Unicode");
 
 	_getch();
 	return 0;
