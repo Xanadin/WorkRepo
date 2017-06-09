@@ -119,10 +119,9 @@ namespace FSB
 	class StdFile : public File
 	{
 	public:
-		StdFile(const char* name)
+		StdFile()
 		{
-			assert(name);
-			strcpy_s(m_name, maxPath, name);
+			strcpy_s(m_name, maxPath, "");
 			m_file = nullptr;
 		}
 
@@ -161,9 +160,43 @@ namespace FSB
 		char m_name[maxPath];
 	};
 
+	class FileHandle
+	{
+		friend class FileManager;
+	private:
+		int m_index;
+	};
+
 	class FileManager
 	{
+	public:
 
+		FileManager()
+		{
+			for (int i = 0; i < maxFileUsage; ++i) m_StatusVec[i] = FREE;
+		}
+		FileHandle* GetFile(const char* name)
+		{
+
+		}
+		const unsigned int READ = 1 << 1;
+		const unsigned int WRITE = 1 << 2;
+		const unsigned int APPEND = 1 << 3;
+		const unsigned int CLOSED = 1 << 4;
+		const unsigned int FREE = 1 << 5;
+
+	private:
+		int FindFreeHandle()
+		{
+			for (int i = 0; i < maxFileUsage; ++i) 
+			{
+				if (m_StatusVec[i] & FREE) return i;
+			}
+			return -1;
+		}
+		const static size_t maxFileUsage = 10;
+		StdFile m_FileVec[maxFileUsage];
+		unsigned int m_StatusVec[maxFileUsage];
 	};
 
 }	// namespace FSB
@@ -222,7 +255,7 @@ int main()
 	printf("%d\n", gamma.GetLength());
 
 	FSB::StdFile prova("C:\\testFileIo.txt");
-	prova.Write(L"Hello File World!");
+	prova.Write(L"Hello File World!\nè pure Unicode");
 
 	_getch();
 	return 0;
