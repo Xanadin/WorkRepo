@@ -107,6 +107,9 @@ class StringManager
 
 namespace FSB
 {
+	const unsigned int FILESTATUS_READ = 1 << 1;
+	const unsigned int FILESTATUS_WRITE = 1 << 2;
+	const unsigned int FILESTATUS_APPEND = 1 << 3;
 
 	class File
 	{
@@ -118,6 +121,7 @@ namespace FSB
 	protected:
 		const static size_t maxPath = 260;
 		char m_name[maxPath];
+		unsigned int m_status;
 	};
 
 	class StdFile : public File
@@ -126,29 +130,55 @@ namespace FSB
 		StdFile()
 		{
 			strcpy_s(m_name, maxPath, "");
-			m_file = nullptr;
+			m_file = NULL;
 		}
 
 		~StdFile()
 		{
+			Reset();
+		}
+
+		void Reset()
+		{
 			if (m_file) fclose(m_file);
-			m_file = nullptr;
+			m_file = NULL;
+			strcpy_s(m_name, maxPath, "");
 		}
 
 		void Read(void* buffer, size_t elemSize, size_t count)
 		{
-			fopen_s(&m_file, m_name, "r");
-			assert(m_file);
+			if ( m_status & (FILESTATUS_WRITE | FILESTATUS_APPEND) )
+			{
+				fclose(m_file);
+				m_file = NULL;
+				m_status &= ~(FILESTATUS_WRITE | FILESTATUS_APPEND);
+			}
+				
+			if ( ! (m_status & FILESTATUS_READ) )
+			{
+				fopen_s(&m_file, m_name, "r");
+				assert(m_file);
+				m_status |= FILESTATUS_READ;
+			}	
 			size_t res = fread(buffer, elemSize, count, m_file);
 			assert(res == count);
-			fclose(m_file);
 		}
 		void Write(const wchar_t* format)
 		{
-			fopen_s(&m_file, m_name, "w");
-			assert(m_file);
+			if (m_status & (FILESTATUS_READ | FILESTATUS_APPEND))
+			{
+				fclose(m_file);
+				m_file = NULL;
+				m_status &= ~(FILESTATUS_READ | FILESTATUS_APPEND);
+			}
+
+			if (!(m_status & FILESTATUS_WRITE))
+			{
+				fopen_s(&m_file, m_name, "w");
+				assert(m_file);
+				m_status |= FILESTATUS_WRITE;
+			}
 			fwprintf(m_file, format);
-			fclose(m_file);
 		}
 
 		void Append(const wchar_t* format, bool create = true)
@@ -214,12 +244,6 @@ namespace FSB
 		{
 
 		}
-
-		const unsigned int READ = 1 << 1;
-		const unsigned int WRITE = 1 << 2;
-		const unsigned int APPEND = 1 << 3;
-		const unsigned int OPENED = 1 << 4;
-		const unsigned int FREE = 1 << 5;
 
 	private:
 		const static size_t maxFileUsage = 10;
