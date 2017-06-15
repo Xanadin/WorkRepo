@@ -117,7 +117,7 @@ namespace FSB
 	public:
 		virtual void Read(void* buffer, size_t elemSize, size_t count) = 0;
 		virtual void Write(const wchar_t* format) = 0;
-		virtual void Append(const wchar_t* format, bool create) = 0;
+		virtual void Append(const wchar_t* format) = 0;
 	protected:
 		const static size_t maxPath = 260;
 		char m_name[maxPath];
@@ -181,7 +181,7 @@ namespace FSB
 			fwprintf(m_file, format);
 		}
 
-		void Append(const wchar_t* format, bool create = true)
+		void Append(const wchar_t* format)
 		{
 			fopen_s(&m_file, m_name, "a");
 			assert(m_file);
@@ -197,31 +197,25 @@ namespace FSB
 	public:
 		typedef unsigned int FileHandle;
 
-		FileManager()
-		{
-			for (int i = 0; i < maxFileUsage; ++i)
-			{
-				m_StatusVec[i] = FREE;
-				m_RefVec[i] = 0;
-			}
-		}
+		FileManager() {}
+
 		FileHandle GetFile(const char* name)
 		{
 			// Check if already used
 			for (int i = 0; i < maxFileUsage; ++i)
 			{
-				if (strcmp(name, m_FileVec[i].m_name) == 0)
+				if (strcmp(name, m_FileVec[i].file.m_name) == 0)
 				{
-					++m_RefVec[i];
+					++(m_FileVec[i].refCount);
 					return i;
 				}
 			}
 			// Find free index
 			for (int i = 0; i < maxFileUsage; ++i)
 			{
-				if (m_StatusVec[i] & FREE)
+				if (m_FileVec[i].free)
 				{
-					strcpy_s(m_FileVec[i].m_name, File::maxPath, name);
+					strcpy_s(m_FileVec[i].file.m_name, File::maxPath, name);
 					return i;
 				}		
 			}
@@ -230,26 +224,42 @@ namespace FSB
 		}
 		void Read(FileHandle handle, void* buffer, size_t elemSize, size_t count)
 		{
-			
+			m_FileVec[handle].file.Read(buffer, elemSize, count);
 		}
 		void Write(FileHandle handle, const wchar_t* format )
 		{
-
+			m_FileVec[handle].file.Write(format);
 		}
-		void Append(FileHandle handle, const wchar_t* format, bool create)
+		void Append(FileHandle handle, const wchar_t* format)
 		{
-
+			m_FileVec[handle].file.Append(format);
 		}
+
 		void Free(FileHandle handle)
 		{
-
+			m_FileVec[handle].refCount--;
+			if (m_FileVec[handle].refCount == 0)
+			{
+				m_FileVec[handle].Reset();
+			}
 		}
 
 	private:
+
+		struct FileRecord
+		{
+			FileRecord() : file(), free(true), refCount(0) {}
+			void Reset()
+			{
+				file.Reset();
+				free = true;
+			}
+			StdFile file;
+			bool free;
+			unsigned int refCount;
+		};
 		const static size_t maxFileUsage = 10;
-		StdFile m_FileVec[maxFileUsage];
-		unsigned int m_StatusVec[maxFileUsage];
-		unsigned int m_RefVec[maxFileUsage];
+		FileRecord m_FileVec[maxFileUsage];
 	};
 
 }	// namespace FSB
