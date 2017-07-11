@@ -53,13 +53,6 @@ public:
 		return m_currentLength;
 	}
 
-	MyString& operator += (const MyString& rhs)
-	{
-		strcat_s(m_str, customStringLength, rhs.GetString());
-		m_currentLength += rhs.GetLength();
-		return *this;
-	}
-
 	MyString& operator *= (const int rhs)
 	{
 		char buff[customStringLength] = "";
