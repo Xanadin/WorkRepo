@@ -3,6 +3,9 @@
 #include <string.h>
 #include <assert.h>
 
+extern "C" int CalcResult1_(int a, int b, int c);
+extern "C" int CalcResult2_(int a, int b, int c, int* quo, int* rem);
+extern "C" int CalcResult4_(int* y, const int* x, int n);
 class MyString
 {
 public:
@@ -262,6 +265,40 @@ int main()
 {
 	
 	printf("Hello World\n");
+
+	int a1 = 30;
+	int b1 = 20;
+	int c1 = 10;
+	int d1 = CalcResult1_(a1, b1, c1);
+	printf("a: %4d b: %4d c: %4d\n", a1, b1, c1);
+	printf("d: %4d\n", d1);
+
+	int a2 = 75;
+	int b2 = 125;
+	int c2 = 7;
+	int quo, rem;
+	CalcResult2_(a2, b2, c2, &quo, &rem);
+	printf("a: %4d b: %4d c: %4d\n", a2, b2, c2);
+	printf("quo: %4d rem: %4d\n", quo, rem);
+
+	const int n = 8;
+	const int x[n] = { 3, 2, 5, 7, 8, 13, 20, 25 };
+	int y[n];
+
+	CalcResult4_(y, x, n);
+
+#ifdef _WIN64
+	const char* sp = "x64";
+#else
+	const char* sp = "Win32";
+#endif
+
+	printf("Results for solution platform %s\n\n", sp);
+	printf("    x     y\n");
+	printf("------------\n");
+
+	for (int i = 0; i < n; i++) printf("%6d %6d\n", x[i], y[i]);
+
 	char line[200] = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"; // 80 x 'a' + \0
 	printf("%.80s", line);
 	// array of strings
