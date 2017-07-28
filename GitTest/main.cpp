@@ -6,6 +6,9 @@
 extern "C" int CalcResult1_(int a, int b, int c);
 extern "C" int CalcResult2_(int a, int b, int c, int* quo, int* rem);
 extern "C" int CalcResult4_(int* y, const int* x, int n);
+
+extern "C" int CalcSum_(int a, int b, int c);
+extern "C" int IntegerMulDiv_(int a, int b, int* prod, int* quo, int* rem);
 class MyString
 {
 public:
@@ -260,12 +263,40 @@ namespace FSB
 
 }	// namespace FSB
 
+void callIntegerMulDiv()
+{
+	printf("IntegerMulDiv\n");
+	// IntegerMulDiv_
+	int a = 21, b = 9;
+	int prod = 0, quo = 0, rem = 0;
+	int rc;
+
+	rc = IntegerMulDiv_(a, b, &prod, &quo, &rem);
+	printf(" Input1 - a:   %4d b:    %4d\n", a, b);
+	printf("Output1 - rc:  %4d prod: %4d\n", rc, prod);
+	printf("		  quo: %4d rem:	 %4d\n\n", quo, rem);
+
+	a = -23;
+	prod = quo = rem = 0;
+	rc = IntegerMulDiv_(a, b, &prod, &quo, &rem);
+	printf(" Input2 - a:   %4d b:    %4d\n", a, b);
+	printf("Output2 - rc:  %4d prod: %4d\n", rc, prod);
+	printf("		  quo: %4d rem:	 %4d\n\n", quo, rem);
+
+	b = 0;
+	prod = quo = rem = 0;
+	rc = IntegerMulDiv_(a, b, &prod, &quo, &rem);
+	printf(" Input3 - a:   %4d b:    %4d\n", a, b);
+	printf("Output3 - rc:  %4d prod: %4d\n", rc, prod);
+	printf("		  quo: %4d rem:	 %4d\n\n", quo, rem);
+}
 
 int main()
 {
 	
 	printf("Hello World\n");
 
+// Assembly functions
 	int a1 = 30;
 	int b1 = 20;
 	int c1 = 10;
@@ -280,6 +311,15 @@ int main()
 	CalcResult2_(a2, b2, c2, &quo, &rem);
 	printf("a: %4d b: %4d c: %4d\n", a2, b2, c2);
 	printf("quo: %4d rem: %4d\n", quo, rem);
+
+	int a21 = 17, b21 = 11, c21 = 14;
+	int sum = CalcSum_(a21, b21, c21);
+	printf(" a: %d\n", a21);
+	printf(" b: %d\n", b21);
+	printf(" c: %d\n", c21);
+	printf(" sum: %d\n", sum);
+
+	callIntegerMulDiv();
 
 	const int n = 8;
 	const int x[n] = { 3, 2, 5, 7, 8, 13, 20, 25 };
