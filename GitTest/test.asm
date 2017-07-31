@@ -69,6 +69,8 @@ CalcSum_ proc
 	ret
 CalcSum_ endp
 
+; ------------------------------------------------------------------------------------
+
 ; extern "C" int IntegerMulDiv_(int a, int b, int* prod, int* quo, int* rem);
 ;
 ; Description: This function demonstrates use of the imul and idiv
@@ -88,21 +90,34 @@ IntegerMulDiv_ proc
 	mov ebp, esp
 	push ebx
 
+;	Stack
+
+;	original ebx		;Low Memory
+;	original ebp
+;	return address
+;	a
+;	b
+;	&prod
+;	&quo
+;	&rem				;High Memory
+
 ; Function prolog
-	xor eax, eax					;set error return code
+	xor eax, eax					;set error return code = 0
 	mov ecx, [ebp+8]				;ecx = 'a'
 	mov edx, [ebp+12]				;edx = 'b'
-	or edx, edx
+	or edx, edx						;test for 0: (edx = edx - edx) se e solo se edx = 0 => ZF = 0. In più preserva il valore di edx
 	jz InvalidDivisor				;jump if 'b' is zero
 
 ; Calculate product and save result
-	imul edx, ecx					;edx = 'a' * 'b'
+	imul edx, ecx					;edx = 'a' * 'b' troncando il risultato a 32 bit
+	; per avere il risultato in 64 bit, si usa imul ecx (in questo caso) che salva il risultato in edx:eax
 	mov ebx, [ebp+16]				;ebx = 'prod'
 	mov [ebx], edx					;save product
 
 ; Calculate quotient and remainder, save results
 	mov eax, ecx					;eax = 'a'
-	cdq								;edx:eax contains dividend
+	cdq								;sign extend (Convert Dword to Quadword)
+	;edx:eax contains dividend, idiv può eseguire anche divisioni a 16 o 8 bit, da cui la specificazione sotto delle dimensioni del divisore
 	idiv dword ptr [ebp+12]			;eax = quo, edx = rem
 
 	mov ebx, [ebp+20]				;ebx = 'quo'
@@ -117,8 +132,85 @@ InvalidDivisor:
 	pop ebp
 	ret
 
+; -------------------------------------------------------------------------------------------
+
 IntegerMulDiv_ endp
 
+; extern "C" void CalculateSums_(int a, int b, int c, int* s1, int* s2, int* s3);
+;
+; Description: This function demonstrates a complete assembly language prolog and epilog.
+;
+; Returns: None.
+;
+; Computes: *s1 = a + b + c
+; *s2 = a * a + b * b + c * c
+; *s3 = a * a * a + b * b * b + c * c * c
+
+CalculateSums_ proc
+
+; Function prolog
+	push ebp
+	mov ebp, esp
+	sub esp, 12			;Allocate local storage space for 3*32bit variables
+	push ebx
+	push esi
+	push edi
+
+;	Stack
+
+;	edi					[EBP-24]	Low Memory	[ESP]
+;	esi					[EBP-20]
+;	ebx					[EBP-16]
+;	Localvar3			[EBP-12]		
+;	Localvar2			[EBP-8]
+;	Localvar1			[EBP-4]
+;	ebp					EBP
+;	return address		[original EBP]
+;	a					[EBP+8]
+;	b					[EBP+12]
+;	c					[EBP+16]
+;	&s1					[EBP+20]
+;	&s2					[EBP+24]
+;	&s3					[EBP+28]	High Memory
+
+; Load arguments
+	mov eax, [ebp+8]	;EAX = 'a'
+	mov ebx, [ebp+12]	;EBX = 'b'
+	mov ecx, [ebp+16]	;ECX = 'c'
+	mov edx, [ebp+20]	;EDX = '&s1'
+	mov esi, [ebp+24]	;ESI = '&s2'
+	mov edi, [ebp+28]	;EDI = '&s3'
+
+; Compute 's1'
+	mov [ebp-12], eax
+	add	[ebp-12], ebx
+	add [ebp-12], ecx	;final 's1' result
+
+; Compute 's2'
+	imul eax, eax
+	imul ebx, ebx
+	imul ecx, ecx
+	mov [ebp-8], eax
+	add [ebp-8], ebx
+	add [ebp-8], ecx	;final 's2' result
+
+; Compute 's3'
+	imul eax, [ebp+8]
+	imul ebx, [ebp+12]
+	imul ecx, [ebp+16]
+	mox [ebp-4], eax
+	add [ebp-4], ebx
+	add [ebp-4], ecx	;final 's3' result
+
+; Save 's1', 's2', and 's3'
+
+	mov eax, [ebp-12]
+; Function epilog
+	ret
+
+CalculateSums_ endp
+
+; -----------------------------------------------------------------------------------------
 
 ; extern "C" int CalcResult4_(int* y, const int* x, int n);
 
