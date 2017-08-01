@@ -132,9 +132,9 @@ InvalidDivisor:
 	pop ebp
 	ret
 
-; -------------------------------------------------------------------------------------------
-
 IntegerMulDiv_ endp
+
+; -------------------------------------------------------------------------------------------
 
 ; extern "C" void CalculateSums_(int a, int b, int c, int* s1, int* s2, int* s3);
 ;
@@ -156,22 +156,26 @@ CalculateSums_ proc
 	push esi
 	push edi
 
+; According to the Visual C++ calling convention that is defined for 32-bit programs,
+; a called function must preserve the values of the following registers: EBX, ESI, EDI, and EBP
+; sono chiamati non-volatile registers
+
 ;	Stack
 
-;	edi					[EBP-24]	Low Memory	[ESP]
-;	esi					[EBP-20]
-;	ebx					[EBP-16]
+;	edi					[EBP-24]	Low Memory	[ESP]	push	^
+;	esi					[EBP-20]								|
+;	ebx					[EBP-16]								|
 ;	Localvar3			[EBP-12]		
 ;	Localvar2			[EBP-8]
 ;	Localvar1			[EBP-4]
-;	ebp					EBP
-;	return address		[original EBP]
+;	ebp					[EBP]
+;	return address		[EBP+4] = [ebp]
 ;	a					[EBP+8]
 ;	b					[EBP+12]
 ;	c					[EBP+16]
-;	&s1					[EBP+20]
-;	&s2					[EBP+24]
-;	&s3					[EBP+28]	High Memory
+;	&s1					[EBP+20]								|
+;	&s2					[EBP+24]								|
+;	&s3					[EBP+28]	High Memory			pop		v
 
 ; Load arguments
 	mov eax, [ebp+8]	;EAX = 'a'
@@ -198,17 +202,120 @@ CalculateSums_ proc
 	imul eax, [ebp+8]
 	imul ebx, [ebp+12]
 	imul ecx, [ebp+16]
-	mox [ebp-4], eax
+	mov [ebp-4], eax
 	add [ebp-4], ebx
 	add [ebp-4], ecx	;final 's3' result
 
 ; Save 's1', 's2', and 's3'
+	mov eax, [ebp-12]	;Non si può fare un mov da memoria a memoria per cui si passa da un reg intermedio
+	mov [edx], eax		;save 's1'
+	mov eax, [ebp-8]
+	mov [esi], eax		;save 's2'
+	mov eax, [ebp-4]
+	mov [edi], eax
 
-	mov eax, [ebp-12]
 ; Function epilog
+	pop edi
+	pop esi
+	pop ebx
+	mov esp, ebp		;Release local storage space, poteva anche essere (add esp, 12)
+	pop ebp
 	ret
 
 CalculateSums_ endp
+
+; -----------------------------------------------------------------------------------------
+;								MemoryAddressing_
+; -----------------------------------------------------------------------------------------
+
+; Simple lookup table (.const section data is read only)
+			.const
+FibVals		dword 0, 1, 1, 2, 3, 5, 8, 13
+			dword 21, 34, 55, 89, 144, 233, 377, 610
+
+NumFibVals_ dword ($ - FibVals) / sizeof dword			;$ indica l'indirizzo dell'istruzione corrente
+			public NumFibVals_
+
+; extern "C" int MemoryAddressing_(int i, int* v1, int* v2, int* v3, int* v4);
+;
+; Description: This function demonstrates various addressing
+; modes that can be used to access operands in
+; memory.
+;
+; Returns: 0 = error (invalid table index)
+; 1 = success
+
+	.code
+MemoryAddressing_ proc
+	push ebp
+	mov ebp, esp
+	push ebx
+	push esi
+	push edi
+
+
+;	Stack
+
+;	edi					[EBP-12]	Low Memory	[ESP]	push	^
+;	esi					[EBP-8]									|
+;	ebx					[EBP-4]									|
+;	ebp					[EBP]
+;	return address		[EBP+4] = [ebp]
+;	i					[EBP+8]
+;	&v1					[EBP+12]
+;	&v2					[EBP+16]								|
+;	&v3					[EBP+20]								|
+;	&v4					[EBP+24]	High Memory			pop		v
+
+; Make sure 'i' is valid
+	xor eax,eax
+	mov ecx, [ebp+8]			;ecx = i
+	cmp ecx, 0
+	jl InvalidIndex				;jump if i < 0
+	cmp ecx, [NumFibVals_]
+	jge InvalidIndex			;jump if i >= NumFibVals_
+
+; Example #1 - base register
+	mov ebx, offset FibVals		;ebx = &FibVals
+	mov esi, [ebp+8]			;esi = i
+	shl esi, 2					;esi = i * 4
+	add ebx, esi				;ebx = &FibVals + i * 4
+	mov eax, [ebx]				;Load table value
+	mov edi, [ebp+12]
+	mov [edi], eax				;Save to 'v1'
+
+; Example #2 - base register + displacement
+; esi is used as the base register
+	mov esi, [ebp+8]			;esi = i
+	shl esi, 2					;esi = i * 4
+	mov eax, [esi + FibVals]	;Load table value
+	mov edi, [ebp+16]
+	mov	[edi], eax				;Save to 'v2'
+
+; Example #3 - base register + index register
+	mov ebx, offset FibVals		;ebx = &FibVals
+	mov esi, [ebp+8]			;esi = i
+	shl esi, 2					;esi = i * 4
+	mov eax, [ebx+esi]			;Load table value
+	mov edi, [ebp+20]
+	mov [edi], eax				;Save to 'v3'
+
+; Example #4 - base register + index register * scale factor
+	mov ebx, offset FibVals		;ebx = &FibVals
+	mov esi, [ebp+8]			;esi = i
+	mov eax, [ebx+esi*4]		;Load table value
+	mov	edi, [ebp+24]
+	mov	[edi], eax				;Save to 'v4'
+
+	mov eax, 1
+
+InvalidIndex:
+	pop edi
+	pop esi
+	pop ebx
+	pop ebp
+	ret
+MemoryAddressing_ endp
 
 ; -----------------------------------------------------------------------------------------
 

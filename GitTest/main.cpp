@@ -266,6 +266,9 @@ extern "C" int CalcSum_(int a, int b, int c);
 extern "C" int IntegerMulDiv_(int a, int b, int* prod, int* quo, int* rem);
 extern "C" void CalculateSums_(int a, int b, int c, int* s1, int* s2, int* s3);
 
+extern "C" int NumFibVals_;
+extern "C" int MemoryAddressing_(int i, int* v1, int* v2, int* v3, int* v4);
+
 void callIntegerMulDiv()
 {
 	printf("IntegerMulDiv\n");
@@ -296,6 +299,7 @@ void callIntegerMulDiv()
 
 void callCalculateSums()
 {
+	printf("CalculateSums\n");
 	int a = 3, b = 5, c = 8;
 	int s1a, s2a, s3a;
 	CalculateSums_(a, b, c, &s1a, &s2a, &s3a);
@@ -307,7 +311,44 @@ void callCalculateSums()
 
 	printf("Input:  a:   %4d b:   %4d c:   %4d\n", a, b, c);
 	printf("Output: s1a: %4d s2a: %4d s3a: %4d\n", s1a, s2a, s3a);
-	printf("        s1b: %4d s2b: %4d s3b: %4d\n", s1b, s2b, s3b);
+	printf("        s1b: %4d s2b: %4d s3b: %4d\n\n", s1b, s2b, s3b);
+}
+
+void callMemoryAddressing()
+{
+	printf("MemoryAddressing\n");
+	for (int i = -1; i < NumFibVals_ +1; i++)
+	{
+		int v1 = -1, v2 = -1, v3 = -1, v4 = -1;
+		int rc = MemoryAddressing_(i, &v1, &v2, &v3, &v4);
+
+		printf("i: %2d  rc: %2d - ", i, rc);
+		printf("v1: %5d v2: %5d v3: %5d v4: %5d\n", v1, v2, v3, v4);
+	}
+	printf("\n");
+}
+
+void callCalcResult4()
+{
+	printf("CalcResult4\n");
+
+	const int n = 8;
+	const int x[n] = { 3, 2, 5, 7, 8, 13, 20, 25 };
+	int y[n];
+
+	CalcResult4_(y, x, n);
+
+#ifdef _WIN64
+	const char* sp = "x64";
+#else
+	const char* sp = "Win32";
+#endif
+
+	printf("Results for solution platform %s\n\n", sp);
+	printf("    x     y\n");
+	printf("------------\n");
+
+	for (int i = 0; i < n; i++) printf("%6d %6d\n", x[i], y[i]);
 }
 
 int main()
@@ -336,27 +377,12 @@ int main()
 	printf(" a: %d\n", a21);
 	printf(" b: %d\n", b21);
 	printf(" c: %d\n", c21);
-	printf(" sum: %d\n", sum);
+	printf(" sum: %d\n\n", sum);
 
 	callIntegerMulDiv();
-
-	const int n = 8;
-	const int x[n] = { 3, 2, 5, 7, 8, 13, 20, 25 };
-	int y[n];
-
-	CalcResult4_(y, x, n);
-
-#ifdef _WIN64
-	const char* sp = "x64";
-#else
-	const char* sp = "Win32";
-#endif
-
-	printf("Results for solution platform %s\n\n", sp);
-	printf("    x     y\n");
-	printf("------------\n");
-
-	for (int i = 0; i < n; i++) printf("%6d %6d\n", x[i], y[i]);
+	callCalculateSums();
+	callMemoryAddressing();
+	callCalcResult4();
 
 	char line[200] = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"; // 80 x 'a' + \0
 	printf("%.80s", line);
