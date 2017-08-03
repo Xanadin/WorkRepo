@@ -266,9 +266,6 @@ extern "C" int CalcSum_(int a, int b, int c);
 extern "C" int IntegerMulDiv_(int a, int b, int* prod, int* quo, int* rem);
 extern "C" void CalculateSums_(int a, int b, int c, int* s1, int* s2, int* s3);
 
-extern "C" int NumFibVals_;
-extern "C" int MemoryAddressing_(int i, int* v1, int* v2, int* v3, int* v4);
-
 void callIntegerMulDiv()
 {
 	printf("IntegerMulDiv\n");
@@ -314,6 +311,9 @@ void callCalculateSums()
 	printf("        s1b: %4d s2b: %4d s3b: %4d\n\n", s1b, s2b, s3b);
 }
 
+extern "C" int NumFibVals_;
+extern "C" int MemoryAddressing_(int i, int* v1, int* v2, int* v3, int* v4);
+
 void callMemoryAddressing()
 {
 	printf("MemoryAddressing\n");
@@ -326,6 +326,30 @@ void callMemoryAddressing()
 		printf("v1: %5d v2: %5d v3: %5d v4: %5d\n", v1, v2, v3, v4);
 	}
 	printf("\n");
+}
+
+extern "C" char GlChar = 10;
+extern "C" short GlShort = 20;
+extern "C" int GlInt = 30;
+extern "C" long long GlLongLong = 0x00000000FFFFFFFE;
+
+extern "C" void IntegerAddition_(char a, short b, int c, long long d);
+
+void callIntegerAddition()
+{
+	printf("IntegerAddition\n");
+	printf("Before GlChar:     %d\n", GlChar);
+	printf("       GlShort:    %d\n", GlShort);
+	printf("       GlInt:      %d\n", GlInt);
+	printf("       GlLongLong: %lld\n", GlLongLong);
+	printf("\n");
+
+	IntegerAddition_(3, 5, -37, 11);
+
+	printf("After GlChar:     %d\n", GlChar);
+	printf("       GlShort:    %d\n", GlShort);
+	printf("       GlInt:      %d\n", GlInt);
+	printf("       GlLongLong: %lld\n", GlLongLong);
 }
 
 void callCalcResult4()
@@ -382,6 +406,7 @@ int main()
 	callIntegerMulDiv();
 	callCalculateSums();
 	callMemoryAddressing();
+	callIntegerAddition();
 	callCalcResult4();
 
 	char line[200] = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"; // 80 x 'a' + \0
