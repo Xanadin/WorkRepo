@@ -319,6 +319,157 @@ MemoryAddressing_ endp
 
 ; -----------------------------------------------------------------------------------------
 
+; -----------------------------------------------------------------------------------------
+;								IntegerAddition_
+; -----------------------------------------------------------------------------------------
+
+; extern "C" void IntegerAddition_(char a, short b, int c, long long d);
+;
+; Description: This function demonstrates simple addition using
+; various-sized integers.
+;
+; Returns: None.
+
+; These are defined in IntegerAddition.cpp
+		extern GlChar:byte
+		extern GlShort:word
+		extern GlInt:dword
+		extern GlLongLong:qword
+
+IntegerAddition_ proc
+		push ebp
+		mov ebp, esp
+
+;	Stack
+
+;	ebp					[EBP]		Low Memory	[ESP]	push	^
+;	return address		[EBP+4] = [ebp]							|
+;	a					[EBP+8]									|
+;	b					[EBP+12]								|
+;	c					[EBP+16]								|
+;	d					[EBP+20]	High Memory			pop		v
+;   Visual C++ size extends 8-bit and 16-bit values to 32 bits before pushing them onto the stack
+;   This ensures that the stack pointer register ESP is always properly aligned to a 32-bit boundary
+
+; Compute GlChar += a
+		mov al, [ebp+8]
+		add [GlChar], al
+
+; Compute GlShort += b, note offset of 'b' on stack	
+		mov ax, [ebp+12]
+		add [GlShort], ax
+
+; Compute GlInt += c, note offset of 'c' on stack
+		mov eax, [ebp+16]
+		add [GlInt], eax
+
+; Compute GlLongLong += d, note use of dword ptr operator and adc
+		mov eax, [ebp+20]
+		mov edx, [ebp+24]
+		add dword ptr [GlLongLong], eax			;dword ptr perchè GlLongLong altrimenti è dichiarato come 64 bit
+		adc dword ptr [GlLongLong+4], edx		;add with carry, il carry della addizione precedente
+
+		pop ebp
+		ret
+IntegerAddition_ endp
+
+; -----------------------------------------------------------------------------------------
+
+; -----------------------------------------------------------------------------------------
+;								ConditionCodes
+; -----------------------------------------------------------------------------------------
+
+; extern "C" int SignedMinA_(int a, int b, int c);
+;
+; Description: Determines minimum of three signed integers
+; using conditional jumps.
+;
+; Returns min(a, b, c)
+
+SignedMinA_ proc
+		push ebp
+		mov ebp, esp
+
+		mov eax, [ebp+8]			;eax = 'a'
+		mov ecx, [ebp+12]			;ecx = 'b'
+
+; Determine min(a, b)
+		cmp eax, ecx
+		jle @F						;eax <= ecx
+		mov eac, ecx				;eax = min(a,b)
+
+; Determine min(a, b, c)
+	@@: mov ecx, [ebp+16]			;ecx = 'c'
+		cmp eax, ecx
+		jle @F
+		mov eax, ecx				;eax - ecx > 0 => ecx < eax
+
+
+	@@:	pop ebp
+		ret
+SignedMinA_ endp
+
+; extern "C" int SignedMaxA_(int a, int b, int c);
+;
+; Description: Determines maximum of three signed integers
+; using conditional jumps.
+;
+; Returns: max(a, b, c)
+
+SignedMaxA_ proc
+		push ebp
+		mov ebp, esp
+
+		mov eax, [ebp+8]			;eax = 'a'
+		mov ecx, [ebp+12]			;ecx = 'b'
+
+; Determine min(a, b)
+		cmp eax, ecx
+		jge @F						;eax >= ecx
+		mov eac, ecx				;eax = max(a,b)
+
+; Determine min(a, b, c)
+	@@: mov ecx, [ebp+16]			;ecx = 'c'
+		cmp eax, ecx
+		jge @F
+		mov eax, ecx				;eax - ecx < 0 => ecx > eax
+
+	@@:	pop ebp
+		ret
+SignedMaxA_ endp
+
+; extern "C" int SignedMinB_(int a, int b, int c);
+;
+; Description: Determines minimum of three signed integers
+; using conditional moves.
+;
+; Returns min(a, b, c)
+
+SignedMinB_ proc
+		push ebp
+		mov ebp, esp
+
+	@@:	pop ebp
+		ret
+SignedMinB_ endp
+
+; extern "C" int SignedMaxB_(int a, int b, int c);
+;
+; Description: Determines maximum of three signed integers
+; using conditional moves.
+;
+; Returns: max(a, b, c)
+
+SignedMaxB_ proc
+		push ebp
+		mov ebp, esp
+
+	@@: pop ebp
+		ret
+SignedMaxB_ endp
+
+; -----------------------------------------------------------------------------------------
+
 ; extern "C" int CalcResult4_(int* y, const int* x, int n);
 
 CalcResult4_ proc
