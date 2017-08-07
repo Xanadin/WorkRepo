@@ -24,6 +24,9 @@
   <ItemGroup>
     <MASM Include="test.asm" />
   </ItemGroup>
+  <ItemGroup>
+    <None Include="TestStruct_.inc" />
+  </ItemGroup>
   <PropertyGroup Label="Globals">
     <VCProjectVersion>15.0</VCProjectVersion>
     <ProjectGuid>{118051D8-018C-4890-BB16-F5C8D77160A2}</ProjectGuid>

@@ -1,4 +1,5 @@
 #include <stdio.h>
+#include <stdlib.h>
 #include <conio.h>
 #include <string.h>
 #include <assert.h>
@@ -257,6 +258,8 @@ namespace FSB
 
 }	// namespace FSB
 
+#pragma region ModernAssembly
+
 // Assembly tests
 extern "C" int CalcResult1_(int a, int b, int c);
 extern "C" int CalcResult2_(int a, int b, int c, int* quo, int* rem);
@@ -291,7 +294,8 @@ void callIntegerMulDiv()
 	rc = IntegerMulDiv_(a, b, &prod, &quo, &rem);
 	printf(" Input3 - a:   %4d b:    %4d\n", a, b);
 	printf("Output3 - rc:  %4d prod: %4d\n", rc, prod);
-	printf("		  quo: %4d rem:	 %4d\n\n", quo, rem);
+	printf("		  quo: %4d rem:	 %4d\n", quo, rem);
+	printf("\n");
 }
 
 void callCalculateSums()
@@ -308,7 +312,8 @@ void callCalculateSums()
 
 	printf("Input:  a:   %4d b:   %4d c:   %4d\n", a, b, c);
 	printf("Output: s1a: %4d s2a: %4d s3a: %4d\n", s1a, s2a, s3a);
-	printf("        s1b: %4d s2b: %4d s3b: %4d\n\n", s1b, s2b, s3b);
+	printf("        s1b: %4d s2b: %4d s3b: %4d\n", s1b, s2b, s3b);
+	printf("\n");
 }
 
 extern "C" int NumFibVals_;
@@ -350,6 +355,8 @@ void callIntegerAddition()
 	printf("       GlShort:    %d\n", GlShort);
 	printf("       GlInt:      %d\n", GlInt);
 	printf("       GlLongLong: %lld\n", GlLongLong);
+
+	printf("\n");
 }
 
 extern "C" int SignedMinA_(int a, int b, int c);
@@ -402,7 +409,126 @@ void callConditionCodes()
 	smax_b = SignedMaxB_(a, b, c);
 	printf("SignedMaxA(%4d, %4d, %4d) = %4d\n", a, b, c, smax_a);
 	printf("SignedMaxB(%4d, %4d, %4d) = %4d\n\n", a, b, c, smax_b);
+
+	printf("\n");
 }
+
+extern "C" int CalcArraySum_(const int* x, int n);
+
+int CalcArraySumCpp(const int* x, int n)
+{
+	int sum = 0;
+	for (int i = 0; i < n; i++) sum += *x++;
+	return sum;
+}
+
+void callCalcArraySum()
+{
+	printf("CalcArraySum\n");
+	int x[] = { 1, 7, -3, 5, 2, 9, -6, 12 };
+	int n = sizeof(x) / sizeof(int);
+	printf("Elements of x[]\n");
+	for (int i = 0; i < n; i++) printf("%d ", x[i]);
+	printf("\n\n");
+	int sum1 = CalcArraySumCpp(x, n);
+	int sum2 = CalcArraySum_(x, n);
+	printf("sum1: %d\n", sum1);
+	printf("sum2: %d\n", sum2);
+	printf("\n");
+}
+
+extern "C" int CalcArraySquares_(int* y, const int* x, int n);
+
+int CalcArraySquaresCpp(int* y, const int* x, int n)
+{
+	int sum = 0;
+	for (int i = 0; i < n; i++)
+	{
+		y[i] = x[i] * x[i];
+		sum += y[i];
+	}
+	return sum;
+}
+
+void callCalcArraySquares()
+{
+	printf("CalcArraySquares\n");
+	int x[] = { 2, 3, 5, 7, 11, 13, 17, 19, 23, 29 };
+	const int n = sizeof(x) / sizeof(int);
+	int y1[n];
+	int y2[n];
+	int sum_y1 = CalcArraySquaresCpp(y1, x, n);
+	int sum_y2 = CalcArraySquares_(y2, x, n);
+	for (int i = 0; i < n; i++) printf("i: %2d  x: %4d  y1: %4d y2: %4d\n", i, x[i], y1[i], y2[i]);
+	printf("\n");
+	printf("sum_y1: %d\n", sum_y1);
+	printf("sum_y2: %d\n", sum_y2);
+	printf("\n");
+}
+
+extern "C" int CalcMatrixRowColSums_(const int* x, int nrows, int ncols, int* row_sums, int* col_sums);
+
+void PrintResults(const int* x, int nrows, int ncols, int* row_sums, int* col_sums)
+{
+	for (int i = 0; i < nrows; i++)
+	{
+		for (int j = 0; j < ncols; j++) printf("%5d ", x[i*ncols + j]);
+		printf(" -- %5d\n", row_sums[i]);
+	}
+	printf("\n");
+	for (int i = 0; i < ncols; i++) printf("%5d ", col_sums[i]);
+	printf("\n");
+}
+
+void CalcMatrixRowColSumsCpp(const int* x, int nrows, int ncols, int* row_sums, int* col_sums)
+{
+	for (int j = 0; j < ncols; j++) col_sums[j] = 0;
+	for (int i = 0; i < nrows; i++)
+	{
+		row_sums[i] = 0;
+		int k = i * ncols;
+		for (int j = 0; j < ncols; j++)
+		{
+			int temp = x[k + j];
+			row_sums[i] += temp;
+			col_sums[j] += temp;
+		}
+	}
+}
+
+void callCalcMatrixRowColSums()
+{
+	printf("CalcMatrixRowColSums\n");
+	const int nrows = 7, ncols = 5;
+	int x[nrows][ncols];
+	// Initialize the test matrix
+	srand(13);
+	for (int i = 0; i < nrows; i++)
+	{
+		for (int j = 0; j < ncols; j++) x[i][j] = rand() % 100;
+	}
+	// Calculate the row and column sums
+	int row_sums1[nrows], col_sums1[ncols];
+	int row_sums2[nrows], col_sums2[ncols];
+
+	CalcMatrixRowColSumsCpp((const int*)x, nrows, ncols, row_sums1, col_sums1);
+	printf("\nResults using CalcMatrixRowColSumsCpp()\n");
+	PrintResults((const int*)x, nrows, ncols, row_sums1, col_sums1);
+
+	CalcMatrixRowColSums_((const int*)x, nrows, ncols, row_sums2, col_sums2);
+	printf("\nResults using CalcMatrixRowColSums_()\n");
+	PrintResults((const int*)x, nrows, ncols, row_sums2, col_sums2);
+	printf("\n");
+}
+
+typedef struct
+{
+	__int8	Val8;
+	__int8  Pad8;
+	__int16 Val16;
+	__int32 Val32;
+	__int64 Val64;
+} TestStruct;
 
 void callCalcResult4()
 {
@@ -426,6 +552,8 @@ void callCalcResult4()
 
 	for (int i = 0; i < n; i++) printf("%6d %6d\n", x[i], y[i]);
 }
+
+#pragma endregion ModernAssembly
 
 int main()
 {
@@ -460,6 +588,9 @@ int main()
 	callMemoryAddressing();
 	callIntegerAddition();
 	callConditionCodes();
+	callCalcArraySum();
+	callCalcArraySquares();
+	callCalcMatrixRowColSums();
 	callCalcResult4();
 
 	char line[200] = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"; // 80 x 'a' + \0

@@ -396,7 +396,8 @@ SignedMinA_ proc
 ; Determine min(a, b)
 		cmp eax, ecx
 		jle @F						;eax <= ecx
-		mov eac, ecx				;eax = min(a,b)
+		; sarebbe jbe per numeri senza segno
+		mov eax, ecx				;eax = min(a,b)
 
 ; Determine min(a, b, c)
 	@@: mov ecx, [ebp+16]			;ecx = 'c'
@@ -426,7 +427,8 @@ SignedMaxA_ proc
 ; Determine min(a, b)
 		cmp eax, ecx
 		jge @F						;eax >= ecx
-		mov eac, ecx				;eax = max(a,b)
+		; sarebbe jae per numeri senza segno
+		mov eax, ecx				;eax = max(a,b)
 
 ; Determine min(a, b, c)
 	@@: mov ecx, [ebp+16]			;ecx = 'c'
@@ -448,8 +450,18 @@ SignedMaxA_ endp
 SignedMinB_ proc
 		push ebp
 		mov ebp, esp
+		mov eax, [ebp+8]			;eax = 'a'
+		mov ecx, [ebp+12]			;ecx = 'b'
 
-	@@:	pop ebp
+; Determine smallest value using the CMOVG instruction
+		cmp eax, ecx
+		cmovg eax, ecx				;se eax > ecx allora eax = ecx
+		;cmova per numeri senza segno
+		mov ecx, [ebp+16]			;ecx = 'c'
+		cmp eax, ecx
+		cmovg eax, ecx				;eax = min(a, b, c)
+
+		pop ebp
 		ret
 SignedMinB_ endp
 
@@ -463,12 +475,180 @@ SignedMinB_ endp
 SignedMaxB_ proc
 		push ebp
 		mov ebp, esp
+		mov eax, [ebp+8]			;eax = 'a'
+		mov ecx, [ebp+12]			;ecx = 'b'
 
-	@@: pop ebp
+; Determine largest value using the CMOVL instruction
+		cmp eax, ecx
+		cmovl eax, ecx				;eax = max(a, b)
+		;cmovb per numeri senza segno
+		mov ecx, [ebp+16]			;ecx = 'c'
+		cmp eax, ecx
+		cmovl eax, ecx				;eax = max(a, b, c)
+
+		pop ebp
 		ret
 SignedMaxB_ endp
 
 ; -----------------------------------------------------------------------------------------
+
+; -----------------------------------------------------------------------------------------
+;								CalcArraySum
+; -----------------------------------------------------------------------------------------
+
+; extern "C" int CalcArraySum_(const int* x, int n);
+;
+; Description: This function sums the elements of a signed integer array.
+; 
+
+CalcArraySum_ proc
+		push ebp
+		mov ebp, esp
+; Load arguments and initialize sum
+		mov edx, [ebp+8]			;edx = 'x'
+		mov ecx, [ebp+12]			;ecx = 'n'
+		xor eax, eax				;eax = sum = 0
+
+; Make sure 'n' is greater than zero
+		cmp ecx, 0
+		jle InvalidCount
+
+; Calculate the array element sum
+@@:		add eax, [edx]				;add next element to sum
+		add edx, 4					;set pointer to next element
+		dec ecx						;adjust counter (and set the flags)
+		jnz @B
+
+InvalidCount:
+		pop ebp
+		ret
+CalcArraySum_ endp
+
+; -----------------------------------------------------------------------------------------
+
+; -----------------------------------------------------------------------------------------
+;								CalcArraySquares
+; -----------------------------------------------------------------------------------------
+
+; extern "C" int CalcArraySquares_(int* y, const int* x, int n);
+;
+;Description: This function cComputes y[i] = x[i] * x[i].
+;
+; Returns: Sum of the elements in array y.
+
+CalcArraySquares_ proc
+		push ebp
+		mov ebp, esp
+		push ebx
+		push esi
+		push edi
+
+; Load arguments
+		mov edi, [ebp+8]			;edi = 'y'
+		mov esi, [ebp+12]			;esi = 'x'
+		mov ecx, [ebp+16]			;ecx = 'n'
+
+; Initialize array sum register, calculate size of array in bytes,
+; and initialize element offset register.
+		xor eax, eax				;eax = sum of 'y' array = 0
+		cmp ecx, 0
+		jle EmptyArray
+		shl ecx, 2					;ecx = ecx*4
+		xor ebx, ebx				;ebx = array element offset = 0
+
+; Repeat loop until finished
+@@:		mov edx, [esi+ebx]			;load next x[i]
+		imul edx, edx				;compute x[i] * x[i]
+		mov [edi+ebx], edx			;save result to y[i]
+		add eax, edx				;update running sum
+		add ebx, 4					;update array element offset
+		cmp ebx, ecx				;ebx < n ?
+		jl @B						;jump if not finished (ebx >= n)
+
+EmptyArray:
+		pop edi
+		pop esi
+		pop ebx
+		pop ebp
+		ret
+CalcArraySquares_ endp
+; -----------------------------------------------------------------------------------------
+
+; -----------------------------------------------------------------------------------------
+;								CalcArraySquares
+; -----------------------------------------------------------------------------------------
+
+; extern "C" int CalcMatrixRowColSums_(const int* x, int nrows, int ncols, int* row_sums, int* col_sums);
+;
+; Description: The following function sums the rows and columns of a 2-D matrix.
+;
+; Returns: 0 = 'nrows' or 'ncols' is invalid
+; 1 = success
+
+CalcMatrixRowColSums_ proc
+		push ebp
+		mov ebp, esp
+		push ebx
+		push esi
+		push edi
+
+; Make sure 'nrow' and 'ncol' are valid
+		xor eax, eax					;error return code
+		cmp dword ptr [ebp+12], 0		;[ebp+12] = 'nrows'
+		jle InvalidArg					;jump if nrows <= 0
+		mov ecx, [ebp+16]				;ecx = 'ncols'
+		cmp ecx, 0
+		jle InvalidArg					;jump if ncols <= 0
+
+; Initialize elements of 'col_sums' array to zero
+		mov edi, [ebp+24]				;edi = 'col_sums'
+		xor eax, eax					;eax = fill value
+		rep stosd						;fill array with eax value
+		;repeat store string doubleword
+		;stosd salva nella posizione di edi il valore di eax e avanza il puntatore edi al valore successivo
+		;rep ripete l'istruzione seguente e decrementa ecx di 1 fino a quando non arriva a zero
+
+; Initialize outer loop variables
+		mov ebx, [ebp+8]				;ebx = 'x'
+		xor esi, esi					;esi = i = 0
+
+; Outer loop
+Lp1:	mov edi, [ebp+20]				;edi = 'row_sums'
+		mov dword ptr [edi + esi*4], 0	;row_sums[i] = 0
+
+		xor edi,edi						;edi = j = 0
+		mov edx, esi					;edx = i
+		imul edx, [ebp+16]				;edx = i * ncols
+
+; Inner loop
+Lp2:	mov ecx, edx					;ecx = i * ncols
+		add ecx, edi					;ecx = i * ncols + j
+		mov eax, [ebx + ecx*4]			;eax = x[i * ncols + j]
+		mov ecx, [ebp + 20]				;ecx = 'row_sums'
+		add [ecx + esi*4], eax			;row_sums[i] += eax
+		mov ecx, [ebp + 24]				;ecx = 'col_sums'
+		add [ecx + edi*4], eax			;col_sums[i] += eax
+; Is inner loop finished?
+		inc edi							;j++
+		cmp	edi, [ebp+16]				;j < ncols ?
+		jl Lp2					
+		
+; Is outer loop finished?
+		inc esi							;i++
+		cmp esi, [ebp+12]				;i < nrows ?
+		jl Lp1					
+		mov eax, 1						;set success return code
+
+InvalidArg:
+		pop edi
+		pop esi
+		pop ebx
+		pop ebp
+		ret
+CalcMatrixRowColSums_ endp
+
+; -----------------------------------------------------------------------------------------
+
 
 ; extern "C" int CalcResult4_(int* y, const int* x, int n);
 
