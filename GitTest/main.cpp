@@ -521,14 +521,55 @@ void callCalcMatrixRowColSums()
 	printf("\n");
 }
 
-typedef struct
+#include "TestStruct.h"
+
+extern "C" __int64 CalcStructSum_(const TestStruct* ts);
+
+__int64 CalcStructSumCpp(const TestStruct* ts)
 {
-	__int8	Val8;
-	__int8  Pad8;
-	__int16 Val16;
-	__int32 Val32;
-	__int64 Val64;
-} TestStruct;
+	return ts->Val8 + ts->Val16 + ts->Val32 + ts->Val64;
+}
+
+void callCalcStructSum()
+{
+	printf("CalcStructSum\n");
+	TestStruct ts;
+
+	ts.Val8 = -100;
+	ts.Val16 = 2000;
+	ts.Val32 = -300000;
+	ts.Val64 = 40000000000;
+
+	__int64 sum1 = CalcStructSumCpp(&ts);
+	__int64 sum2 = CalcStructSum_(&ts);
+
+	printf("Input: %d  %d  %d  %lld\n", ts.Val8, ts.Val16, ts.Val32, ts.Val64);
+	printf("sum1: %lld\n", sum1);
+	printf("sum2: %lld\n", sum2);
+	if (sum1 != sum2) printf("Sum verify check failed!\n");
+	printf("\n");
+}
+
+extern "C" TestStruct* CreateTestStruct_(__int8 val8, __int16 val16, __int32 val32, __int64 val64);
+extern "C" void ReleaseTestStruct_(TestStruct* p);
+
+void PrintTestStruct(const char* msg, const TestStruct* ts)
+{
+	printf("%s\n", msg);
+	printf("  ts-Val8: %d\n", ts->Val8);
+	printf("  ts->Val16: %d\n", ts->Val16);
+	printf("  ts->Val32: %d\n", ts->Val32);
+	printf("  ts->Val64: %lld\n", ts->Val64);
+}
+
+void callCreateTestStruct()
+{
+	printf("CreateTestStruct\n");
+	TestStruct* ts = CreateTestStruct_(40, -401, 400002, -4000000003LL);
+	PrintTestStruct("Contents of TestStruct 'ts'", ts);
+	ReleaseTestStruct_(ts);
+	printf("\n");
+}
 
 void callCalcResult4()
 {
@@ -591,6 +632,8 @@ int main()
 	callCalcArraySum();
 	callCalcArraySquares();
 	callCalcMatrixRowColSums();
+	callCalcStructSum();
+	callCreateTestStruct();
 	callCalcResult4();
 
 	char line[200] = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"; // 80 x 'a' + \0

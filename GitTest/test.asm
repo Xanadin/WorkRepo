@@ -1,5 +1,8 @@
 IFDEF ASMX86_32
 	.model flat,c
+	include TestStruct_.inc
+	extern malloc:proc
+	extern free:proc
 	.code
 
 ; extern "C" int CalcResult1_(int a, int b, int c);
@@ -649,6 +652,118 @@ CalcMatrixRowColSums_ endp
 
 ; -----------------------------------------------------------------------------------------
 
+; -----------------------------------------------------------------------------------------
+;								CalcStructSum
+; -----------------------------------------------------------------------------------------
+
+; extern "C" __int64 CalcStructSum_(const TestStruct* ts);
+;
+; Description: This function sums the members of a TestStruc.
+;
+; Returns: Sum of 'ts' members as a 64-bit integer.
+
+CalcStructSum_ proc
+		push ebp
+		mov ebp, esp
+		push ebx
+		push esi
+
+; Compute ts->Val8 + ts->Val16, note sign extension to 32-bits
+		mov esi, [ebp+8]
+		movsx	eax, byte ptr [esi+TestStruct.Val8]
+		movsx	ecx, word ptr [esi+TestStruct.Val16]
+		add eax, ecx
+
+; Sign extend previous sum to 64 bits, save result to ebx:ecx
+		cdq							;sign extend eax in edx:eax ConvertDwordQuad
+		mov ebx, eax				;save the lobits to ebx
+		mov ecx, edx				;save the hibits to ecx
+
+; Add ts->Val32 to sum
+		mov	eax, [esi+TestStruct.Val32]
+		cdq
+		add eax, ebx
+		adc edx, ecx
+
+; Add ts->Val64 to sum
+		add eax, dword ptr [esi+TestStruct.Val64]
+		adc edx, dword ptr [esi+TestStruct.Val64+4]
+
+		pop esi
+		pop ebx
+		pop ebp
+		ret
+CalcStructSum_ endp
+
+; -----------------------------------------------------------------------------------------
+
+; -----------------------------------------------------------------------------------------
+;								CreateTestStruct
+; -----------------------------------------------------------------------------------------
+
+; extern "C" TestStruct* CreateTestStruct_(__int8 val8, __int16 val16, __int32 val32, __int64 val64);
+;
+; Description: This function allocates and initializes a new TestStruct.
+;
+; Returns: A pointer to the new TestStruct or NULL error occurred.
+
+CreateTestStruct_ proc
+		push ebp
+		mov ebp, esp
+
+; Allocate a block of memory for the new TestStruct; note that
+; malloc() returns a pointer to memory block in EAX
+		push sizeof TestStruct							;inserisce nello stack l'argomento della funzione malloc (il numero di bytes da allocare)
+
+;	sizeof(TestStruct)	[EBP-20]	Low Memory	[ESP]	push	^
+;	ebp					[EBP]									|
+;	return address		[EBP+4] = [ebp]							|
+;	val8				[EBP+8]									|
+;	val16				[EBP+12]								|
+;	val32				[EBP+16]								|
+;	val64				[EBP+20]	High Memory			pop		v
+
+		call malloc
+		add esp, 4					; ripristina lo stack eliminando gli argomenti della funzione chiamata
+		or eax, eax					; NULL pointer test
+		jz MallocError				; Jump if malloc failed
+
+; Initialize the new TestStruct
+		mov dl, [ebp+8]
+		mov	[eax+TestStruct.Val8], dl
+		mov dx, [ebp+12]
+		mov [eax+TestStruct.Val16], dx
+		mov edx, [ebp+16]
+		mov [eax+TestStruct.Val32], edx
+		mov ecx, [ebp+20]
+		mov edx, [ebp+24]
+		mov dword ptr [eax+TestStruct.Val64], ecx
+		mov dword ptr [eax+TestStruct.Val64+4], edx
+
+MallocError:
+		pop ebp
+		ret
+CreateTestStruct_ endp
+
+; extern "C" void ReleaseTestStruct_(TestStruct* p);
+;
+; Description: This function release a previously created TestStruct.
+;
+; Returns: None.
+
+ReleaseTestStruct_ proc
+		push ebp
+		mov ebp, esp
+
+; Call free() to release previously created TestStruct
+		push [ebp+8]				; inserisce nello stack il puntatore a ts
+		call free
+		add esp,4					; pulisce lo stack
+		pop ebp
+		ret
+ReleaseTestStruct_ endp
+
+; -----------------------------------------------------------------------------------------
 
 ; extern "C" int CalcResult4_(int* y, const int* x, int n);
 
