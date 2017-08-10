@@ -765,6 +765,136 @@ ReleaseTestStruct_ endp
 
 ; -----------------------------------------------------------------------------------------
 
+; -----------------------------------------------------------------------------------------
+;								CreateTestStruct
+; -----------------------------------------------------------------------------------------
+
+; extern "C" int CountChars_(wchar_t* s, wchar_t c);
+;
+; Description: This function counts the number of occurrences
+; of 'c' in 's'
+;
+; Returns: Number of occurrences of 'c'
+
+CountChars_ proc
+		push ebp
+		mov ebp, esp
+		push esi
+
+; Load parameters and initialize count registers
+		mov esi, [ebp+8]			;esi = 's'
+		mov cx, [ebp+12]			;cd = 'c'
+		xor edx, edx				;edx = Number of occurrences
+
+; Repeat loop until the entire string has been scanned
+@@:		lodsw						;load next char into ax: LOaDStringWord (con char è lodsb che usa AL invece di AX)
+		or ax, ax					;test for end-of-string: '\0'
+		jz @F						;jump if end-of-string found
+		cmp ax, cx					;test current char
+		jne @B						;jump if no match
+		inc edx						;update match count
+		jmp @B
+
+@@:		mov eax, edx				;eax = character count
+		pop esi
+		pop ebp
+		ret
+CountChars_ endp
+
+; -----------------------------------------------------------------------------------------
+
+; -----------------------------------------------------------------------------------------
+;								ConcatStrings
+; -----------------------------------------------------------------------------------------
+
+; extern "C" int ConcatStrings_(wchar_t* des, int des_size, const wchar_t* const* src, int src_n);
+;
+; Description: This function performs string concatenation using
+; multiple input strings.
+;
+; Returns: -1 Invalid 'des_size'
+; n >=0 Length of concatenated string
+; Locals Vars: 
+; [ebp-4] = des_index
+; [ebp-8] = i
+
+ConcatStrings_ proc
+		push ebp
+		mov ebp, esp
+		sub esp, 8
+		push ebx
+		push esi
+		push edi
+
+; Make sure 'des_size' is valid
+		mov eax, -1
+		mov ecx, [ebp+12]			;ecx = 'des_size'
+		cmp ecx, 0
+		jle Error
+
+; Perform required initializations
+		xor eax, eax
+		mov ebx, [ebp+8]			;ebx = 'des'
+		mov [ebx], ax				;*des = '\0'
+		mov [ebp-4], eax			;des_index = 0
+		mov [ebp-8], eax			;i = 0
+
+; Repeat loop until concatenation is finished
+Lp1:	mov eax, [ebp+16]			;eax = 'src'
+		mov edx, [ebp-8]			;edx = i
+		mov edi, [eax+edx*4]		;edi = src[i] (usato da scasw)
+		mov esi, edi				;esi = src[i] (usato da movsw)
+
+; Compute length of s[i]
+		xor eax, eax				;eax = '\0'
+		mov ecx, -1
+		repne scasw					;find '\0'
+; repne : repeats string instruction while ECX != 0 && EFLAGS.ZF == 0
+; scasw (SCAnStringWord) : While (ECX != 0) {cmp [EDI], AX (set the flags); EDI += 2; ECX--}
+		not ecx						;ecx = -(L + 2)
+		dec ecx						;ecx = len(src[i])
+; il complemento di -n è sempre n - 1 => (!(-(x+2))-1) = x
+; the Visual C++ run-time environment assumes that EFLAGS.DF is always cleared. If an assembly language function sets EFLAGS.DF
+; in order to perform an auto-decrement operation with a string instruction, the flag must be cleared before returning to the caller or using any library functions
+
+; Compute des_index + src_len
+		mov eax, [ebp-4]			;eax = des_index
+		mov edx, eax				;edx = des_index_temp
+		add eax, ecx				;des_index + len(src[i])
+
+; Is des_index + src_len >=des_size?
+		cmp eax, [ebp+12]
+		jge Done
+;Anche se sono uguali non va bene perchè bisogna poi aggiungere '\0'
+
+; Update des_index
+		add [ebp-4], ecx			;des_index += len(src[i])
+
+; Copy src[i] to &des[des_index] (esi already contains src[i])
+		inc ecx						;ecx = len(src[i]) + 1	(per includere '\0')
+		lea edi, [ebx+edx*2]		;edi = &des[des_index_temp] LoadEffectiveAddress
+		rep movsw					;perform string move
+;REPeat MOVeStringWord copies the string pointed to by ESI to the memory location pointed to by EDI using the length specified by ECX
+
+; Update i and repeat if not done
+		mov eax, [ebp-8]
+		inc eax
+		mov [ebp-8], eax			;i++
+		cmp eax, [ebp+20]
+		jl Lp1
+
+; Return length of concatenated string
+Done:	mov eax, [ebp-4]			;eax = des_index
+Error:	pop edi
+		pop esi
+		pop ebx
+		mov esp, ebp
+		pop ebp
+		ret
+ConcatStrings_ endp
+
+; -----------------------------------------------------------------------------------------
+
 ; extern "C" int CalcResult4_(int* y, const int* x, int n);
 
 CalcResult4_ proc

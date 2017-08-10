@@ -571,6 +571,75 @@ void callCreateTestStruct()
 	printf("\n");
 }
 
+extern "C" int CountChars_(wchar_t* s, wchar_t c);
+
+void callCountChars()
+{
+	printf("CountChars\n");
+	wchar_t c;
+	wchar_t* s;
+	s = L"Four score and seven seconds ago, ...";
+	wprintf(L"\nTest string: %s\n", s);
+	c = L's';
+	wprintf(L"  SearchChar: %c Count: %d\n", c, CountChars_(s, c));
+	c = L'F';
+	wprintf(L"  SearchChar: %c Count: %d\n", c, CountChars_(s, c));
+	c = L'o';
+	wprintf(L"  SearchChar: %c Count: %d\n", c, CountChars_(s, c));
+	c = L'z';
+	wprintf(L"  SearchChar: %c Count: %d\n", c, CountChars_(s, c));
+
+	s = L"Red Green Blue Cyan Magenta Yellow";
+	wprintf(L"\nTest string: %s\n", s);
+	c = L'e';
+	wprintf(L"  SearchChar: %c Count: %d\n", c, CountChars_(s, c));
+	c = L'w';
+	wprintf(L"  SearchChar: %c Count: %d\n", c, CountChars_(s, c));
+	c = L'Q';
+	wprintf(L"  SearchChar: %c Count: %d\n", c, CountChars_(s, c));
+	c = L'l';
+	wprintf(L"  SearchChar: %c Count: %d\n", c, CountChars_(s, c));
+
+	printf("\n");
+}
+
+extern "C" int ConcatStrings_(wchar_t* des, int des_size, const wchar_t* const* src, int src_n);
+
+void callConcatStrings()
+{
+	printf("ConcatStrings\n");
+	printf("\nResults for ConcatStrings\n");
+
+	// Destination buffer large enough
+	wchar_t* src1[] = { L"One ", L"Two ", L"Three ", L"Four" };
+	int src1_n = sizeof(src1) / sizeof(wchar_t*);		// scr1_n = 4
+	const int des1_size = 64;
+	wchar_t des1[des1_size];
+	int des1_len = ConcatStrings_(des1, des1_size, src1, src1_n);
+	wchar_t* des1_temp = (*des1 != '\0') ? des1 : L"<empty>";
+	wprintf(L"  des_len: %d (%d) des: %s \n", des1_len, wcslen(des1_temp), des1_temp);
+
+	// Destination buffer too small
+	wchar_t* src2[] = { L"Red ", L"Green ", L"Blue ", L"Yellow " };
+	int src2_n = sizeof(src2) / sizeof(wchar_t*);      // scr2_n = 4
+	const int des2_size = 16;
+	wchar_t des2[des2_size];
+	int des2_len = ConcatStrings_(des2, des2_size, src2, src2_n);
+	wchar_t* des2_temp = (*des2 != '\0') ? des2 : L"<empty>";
+	wprintf(L"  des_len: %d (%d) des: %s \n", des2_len, wcslen(des2_temp), des2_temp);
+
+	// Empty string test
+	wchar_t* src3[] = { L"Airplane ", L"Car ", L"", L"Truck ", L"Boat " };
+	int src3_n = sizeof(src3) / sizeof(wchar_t*);     // scr3_n = 5
+	const int des3_size = 128;
+	wchar_t des3[des3_size];
+	int des3_len = ConcatStrings_(des3, des3_size, src3, src3_n);
+	wchar_t* des3_temp = (*des3 != '\0') ? des3 : L"<empty>";
+	wprintf(L"  des_len: %d (%d) des: %s \n", des3_len, wcslen(des3_temp), des3_temp);
+
+	printf("\n");
+}
+
 void callCalcResult4()
 {
 	printf("CalcResult4\n");
@@ -598,9 +667,6 @@ void callCalcResult4()
 
 int main()
 {
-	
-	printf("Hello World\n");
-
 // Assembly functions
 	int a1 = 30;
 	int b1 = 20;
@@ -634,6 +700,8 @@ int main()
 	callCalcMatrixRowColSums();
 	callCalcStructSum();
 	callCreateTestStruct();
+	callCountChars();
+	callConcatStrings();
 	callCalcResult4();
 
 	char line[200] = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"; // 80 x 'a' + \0
